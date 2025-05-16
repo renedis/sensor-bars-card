@@ -4,7 +4,7 @@ class SensorBarsCard extends HTMLElement {
       throw new Error("You need to define 'bars' in your card config");
     }
     this.config = config;
-    this.chartType = config.type || "bar";  // "bar", "pie", or "donut"
+    this.chartType = config.chart || "bar";  // "bar", "pie", or "donut"
   }
 
   set hass(hass) {
