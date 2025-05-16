@@ -20,17 +20,13 @@ class SensorBarsCard extends HTMLElement {
         .card { padding: 16px; }
         .bar-row {
           margin: 4px 0 12px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
         }
         .bar-container {
           border-radius: 9999px;
           overflow: hidden;
-          flex-grow: 1;
+          width: 100%;
           height: 12px;
           background-color: var(--bar-bg-color, #2f3a3f);
-          margin: 0 12px;
         }
         .bar-fill {
           height: 100%;
@@ -41,25 +37,35 @@ class SensorBarsCard extends HTMLElement {
           font-size: 14px;
           font-weight: 500;
           color: #ccc;
+        }
+        .label-value-above {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+          width: 100%;
+        }
+        .label.left {
           width: 150px;
           flex-shrink: 0;
+          margin-right: 8px;
         }
         .value {
           font-size: 14px;
           font-weight: 500;
           color: #ccc;
-          width: 60px;
-          text-align: right;
           flex-shrink: 0;
+          min-width: 50px;
+          text-align: right;
         }
-        .label.above, .value.above {
-          width: 100%;
-          margin-bottom: 4px;
-          text-align: left;
-        }
-        .vertical-stack {
+        .bar-row.left {
           display: flex;
-          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .bar-row.left .bar-container {
+          flex-grow: 1;
+          margin: 0 12px;
         }
         h1 {
           font-size: 18px;
@@ -97,46 +103,90 @@ class SensorBarsCard extends HTMLElement {
       const labelPosition = bar.label_position || "above";
       const valuePosition = bar.value_position || "right";
 
-      // Render label and value elements
-      const labelHtml = labelPosition !== "none" ? `
-        <div class="label ${labelPosition === "above" ? "above" : ""}">
-          ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
-          <span>${bar.name}</span>
-        </div>
-      ` : "";
-
-      const valueHtml = showValue && valuePosition !== "none" ? `
-        <div class="value ${valuePosition === "above" ? "above" : ""}">
-          ${value}${unit}
-        </div>
-      ` : "";
-
-      // Compose layout
-      if (labelPosition === "above" || valuePosition === "above") {
-        // Vertical stacking if either label or value is above
-        return `
-          <div class="bar-row vertical-stack">
-            ${labelPosition === "above" ? labelHtml : ""}
-            ${valuePosition === "above" ? valueHtml : ""}
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
-              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+      // Compose label and value HTML for above together
+      if (labelPosition === "above" && valuePosition === "above") {
+        const labelValueRow = `
+          <div class="label-value-above">
+            <div class="label">
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
+              <span>${bar.name}</span>
             </div>
-            ${labelPosition !== "above" && labelPosition !== "none" ? labelHtml : ""}
-            ${valuePosition !== "above" && valuePosition !== "none" ? valueHtml : ""}
+            ${showValue ? `<div class="value">${value}${unit}</div>` : ''}
           </div>
         `;
-      } else {
-        // Horizontal layout with label left, bar middle, value right
         return `
           <div class="bar-row">
-            ${labelHtml}
+            ${labelValueRow}
             <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
-            ${valueHtml}
           </div>
         `;
       }
+
+      // Handle other combinations
+      // Label on left
+      if (labelPosition === "left") {
+        return `
+          <div class="bar-row left">
+            <div class="label left">
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
+              <span>${bar.name}</span>
+            </div>
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+            ${showValue && valuePosition === "right" ? `<div class="value">${value}${unit}</div>` : ""}
+            ${showValue && valuePosition === "above" ? `<div class="value" style="width: 100%; text-align: right; margin-top: 4px;">${value}${unit}</div>` : ""}
+          </div>
+        `;
+      }
+
+      // Label above and value right
+      if (labelPosition === "above" && valuePosition === "right") {
+        return `
+          <div class="bar-row vertical-stack">
+            <div class="label" style="margin-bottom: 4px;">
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
+              <span>${bar.name}</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div class="bar-container" style="background-color: ${bg}; height: ${height}px; flex-grow: 1; margin-right: 12px;">
+                <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+              </div>
+              ${showValue ? `<div class="value" style="width: 60px;">${value}${unit}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      // Label none and value right
+      if (labelPosition === "none" && valuePosition === "right") {
+        return `
+          <div class="bar-row" style="justify-content: flex-start;">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+            ${showValue ? `<div class="value" style="width: 60px; text-align: right;">${value}${unit}</div>` : ''}
+          </div>
+        `;
+      }
+
+      // Fallback: label above, value none or not right/above
+      return `
+        <div class="bar-row">
+          ${labelPosition === "above" ? `
+            <div class="label" style="margin-bottom: 4px;">
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
+              <span>${bar.name}</span>
+            </div>
+          ` : ""}
+          <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+            <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+          </div>
+          ${showValue && valuePosition === "right" ? `<div class="value">${value}${unit}</div>` : ""}
+        </div>
+      `;
     }).join('');
 
     root.innerHTML = `${style}<ha-card><div class="card">
