@@ -4,7 +4,6 @@ class SensorBarsCard extends HTMLElement {
       throw new Error("You need to define 'bars' in your card config");
     }
     this.config = config;
-    this.chartType = config.chart || "bar";  // "bar", "pie", or "donut"
   }
 
   set hass(hass) {
@@ -12,134 +11,200 @@ class SensorBarsCard extends HTMLElement {
     this.render();
   }
 
-  // Helper: create SVG arc path for pie/donut slice
-  _describeArc(cx, cy, radius, startAngle, endAngle) {
-    const radians = (deg) => (deg * Math.PI) / 180;
-    const start = {
-      x: cx + radius * Math.cos(radians(startAngle)),
-      y: cy + radius * Math.sin(radians(startAngle)),
-    };
-    const end = {
-      x: cx + radius * Math.cos(radians(endAngle)),
-      y: cy + radius * Math.sin(radians(endAngle)),
-    };
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    return `M ${cx} ${cy} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
-  }
-
   render() {
     if (!this._hass || !this.config) return;
     const root = this.shadowRoot || this.attachShadow({ mode: 'open' });
 
-    const style = `
+    const style = 
       <style>
         .card { padding: 16px; }
-        .chart-row {
-          margin: 16px 0;
-          display: flex;
-          align-items: center;
+        .bar-row {
+          margin: 4px 0 12px;
         }
-        .pie-svg {
-          width: 80px;
-          height: 80px;
-          flex-shrink: 0;
+        .bar-container {
+          border-radius: 9999px;
+          overflow: hidden;
+          width: 100%;
+          height: 12px;
+          background-color: var(--bar-bg-color, #2f3a3f);
         }
-        .label-value {
-          margin-left: 16px;
-          flex-grow: 1;
+        .bar-fill {
+          height: 100%;
+          transition: width 0.4s ease;
+          border-radius: 9999px;
         }
         .label {
           font-size: 14px;
           font-weight: 500;
           color: #ccc;
+        }
+        .label-value-row-above {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           margin-bottom: 4px;
+          width: 100%;
+        }
+        .label.left {
+          width: 150px;
+          flex-shrink: 0;
         }
         .value {
           font-size: 14px;
-          font-weight: 400;
-          color: #aaa;
+          font-weight: 500;
+          color: #ccc;
+          flex-shrink: 0;
+          min-width: 50px;
+          text-align: right;
+        }
+        .bar-row.left {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .bar-row.left .bar-container {
+          flex-grow: 1;
+          margin: 0 12px;
+        }
+        .bar-row.vertical-stack {
+          display: flex;
+          flex-direction: column;
+        }
+        h1 {
+          font-size: 18px;
+          margin: 0 0 12px;
         }
       </style>
-    `;
+    ;
 
-    let contentHtml = '';
+    const barsHtml = this.config.bars.map(bar => {
+      const stateObj = this._hass.states[bar.entity];
+      if (!stateObj) {
+        return <div class="label">${bar.name} – entity not found</div>;
+      }
 
-    if (this.chartType === "bar") {
-      // your existing bar chart rendering code (keep as is)
-      // For brevity, call a function or re-use your existing code here
-      // You can replace this comment with your existing barsHtml code block
-      contentHtml = this._renderBars();
-    } else if (this.chartType === "pie" || this.chartType === "donut") {
-      // Render pie/donut charts for each bar config item
-      contentHtml = this.config.bars.map(bar => {
-        const stateObj = this._hass.states[bar.entity];
-        if (!stateObj) {
-          return `<div class="label">${bar.name} – entity not found</div>`;
+      const raw = parseFloat(stateObj.state);
+      const value = isNaN(raw) ? 0 : raw;
+      const unit = bar.unit || stateObj.attributes.unit_of_measurement || '';
+      const max = bar.max || 100;
+      const percent = Math.min((value / max) * 100, 100);
+      const showValue = bar.show_value !== false;
+      const height = bar.height || 12;
+      const bg = bar.background_color || "#2f3a3f";
+
+      let color = "#5cd679";
+      if (Array.isArray(bar.color_gradient)) {
+        const sorted = [...bar.color_gradient].sort((a, b) => b.from - a.from);
+        for (const grad of sorted) {
+          if (value >= grad.from) {
+            color = grad.color;
+            break;
+          }
         }
-        const raw = parseFloat(stateObj.state);
-        const value = isNaN(raw) ? 0 : raw;
-        const max = bar.max || 100;
-        const percent = Math.min(value / max, 1);
-        const angle = percent * 360;
-        const color = (bar.color_gradient && bar.color_gradient.length) ?
-          // pick color by value, fallback to first color
-          (() => {
-            const sorted = [...bar.color_gradient].sort((a,b) => b.from - a.from);
-            for (const grad of sorted) {
-              if (value >= grad.from) return grad.color;
-            }
-            return sorted[sorted.length-1].color;
-          })() : "#5cd679";
+      }
 
-        // SVG pie slice path for filled part (start angle 0, end angle = angle)
-        const cx = 40, cy = 40, r = 35;
-        const startAngle = 0;
-        const endAngle = angle;
+      const labelPosition = bar.label_position || "above";
+      const valuePosition = bar.value_position || "right";
 
-        // For donut, create a white hole circle
-        const donutHole = this.chartType === "donut" ? `<circle cx="${cx}" cy="${cy}" r="${r*0.6}" fill="#1e1e2f" />` : "";
-
-        // Label and value HTML with simple layout
-        const labelHtml = `<div class="label">${bar.name}</div>`;
-        const valueHtml = `<div class="value">${value}${bar.unit || ""}</div>`;
-
-        return `
-          <div class="chart-row">
-            <svg class="pie-svg" viewBox="0 0 80 80" aria-label="${bar.name}">
-              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#2f3a3f" />
-              <path d="${this._describeArc(cx, cy, r, startAngle, endAngle)}" fill="${color}" />
-              ${donutHole}
-            </svg>
-            <div class="label-value">
-              ${labelHtml}
-              ${valueHtml}
+      // Fix label:none + value:above (value alone above bar)
+      if (labelPosition === "none" && valuePosition === "above") {
+        return 
+          <div class="bar-row vertical-stack">
+            ${showValue ? <div class="value" style="text-align: right; margin-bottom: 4px;">${value}${unit}</div> : ''}
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
           </div>
-        `;
-      }).join('');
-    }
+        ;
+      }
 
-    root.innerHTML = `${style}<ha-card><div class="card">
-      ${this.config.title ? `<h1>${this.config.title}</h1>` : ''}
-      ${contentHtml}
-    </div></ha-card>`;
-  }
+      // Fix label:none + value:right (value right aligned next to bar)
+      if (labelPosition === "none" && valuePosition === "right") {
+        return 
+          <div class="bar-row left" style="justify-content: flex-start;">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+            ${showValue ? <div class="value" style="width: 60px; text-align: right; align-self: center;">${value}${unit}</div> : ''}
+          </div>
+        ;
+      }
 
-  // Your existing _renderBars() function here if you want to separate bar code
+      // Fix label:left + value:above and label:above + value:above
+      // Show label and value side-by-side above bar in one horizontal flex row
+      if ((labelPosition === "left" && valuePosition === "above") ||
+          (labelPosition === "above" && valuePosition === "above")) {
+        return 
+          <div class="bar-row vertical-stack">
+            <div class="label-value-row-above">
+              <div class="label ${labelPosition === "left" ? "left" : ""}">
+                ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+                <span>${bar.name}</span>
+              </div>
+              ${showValue ? <div class="value">${value}${unit}</div> : ''}
+            </div>
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+          </div>
+        ;
+      }
 
-  // The arc helper function from above
-  _describeArc(cx, cy, radius, startAngle, endAngle) {
-    const radians = (deg) => (deg * Math.PI) / 180;
-    const start = {
-      x: cx + radius * Math.cos(radians(startAngle)),
-      y: cy + radius * Math.sin(radians(startAngle)),
-    };
-    const end = {
-      x: cx + radius * Math.cos(radians(endAngle)),
-      y: cy + radius * Math.sin(radians(endAngle)),
-    };
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    return `M ${cx} ${cy} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+      // label:left + value:right horizontal row
+      if (labelPosition === "left") {
+        return 
+          <div class="bar-row left">
+            <div class="label left">
+              ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+              <span>${bar.name}</span>
+            </div>
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+            ${showValue && valuePosition === "right" ? <div class="value">${value}${unit}</div> : ""}
+          </div>
+        ;
+      }
+
+      // label:above + value:right horizontal bar + value right
+      if (labelPosition === "above" && valuePosition === "right") {
+        return 
+          <div class="bar-row vertical-stack">
+            <div class="label" style="margin-bottom: 4px;">
+              ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+              <span>${bar.name}</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div class="bar-container" style="background-color: ${bg}; height: ${height}px; flex-grow: 1; margin-right: 12px;">
+                <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+              </div>
+              ${showValue ? <div class="value" style="width: 60px;">${value}${unit}</div> : ''}
+            </div>
+          </div>
+        ;
+      }
+
+      // fallback: label above, no value
+      return 
+        <div class="bar-row">
+          ${labelPosition === "above" ? 
+            <div class="label" style="margin-bottom: 4px;">
+              ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+              <span>${bar.name}</span>
+            </div>
+           : ""}
+          <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+            <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+          </div>
+          ${showValue && valuePosition === "right" ? <div class="value">${value}${unit}</div> : ""}
+        </div>
+      ;
+    }).join('');
+
+    root.innerHTML = ${style}<ha-card><div class="card">
+      ${this.config.title ? <h1>${this.config.title}</h1> : ''}
+      ${barsHtml}
+    </div></ha-card>;
   }
 
   getCardSize() {
