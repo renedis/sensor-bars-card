@@ -7,35 +7,27 @@ A customizable Lovelace card to display any numeric sensor as a modern, rounded 
 1. Go to **HACS → Settings → Custom Repositories**
 2. Add this repo:
    - URL: `https://github.com/renedis/sensor-bars-card`
-   - Type: `Dashboard` (this is required due to HACS 2.x limitations)
-3. After installation, add the following to your **Resources** in Home Assistant:
-
-```
-/hacsfiles/sensor-bars-card/sensor-bars-card.js
-```
-
-4. Then use the card in your dashboard:
+   - Type: `Dashboard`
+3. Then use the card in your dashboard:
 
 ```yaml
 type: custom:sensor-bars-card
-title: Sensor Data
+title: Server Health
 bars:
-  - name: Temperature
-    entity: sensor.outdoor_temp
-    max: 50
-    unit: °C
-    height: 8
+  - name: POE Load
+    entity: sensor.waveshare_cm401_poe
+    unit: "%"
+    max: 100
+    label_position: left
+    value_position: right
     show_value: true
+    height: 10
     color_gradient:
       - from: 0
-        color: "#5cd679"
-      - from: 30
+        color: "#2ecc71"
+      - from: 60
         color: "#f1c40f"
-      - from: 40
+      - from: 90
         color: "#e74c3c"
+
 ```
-
-## Development
-
-- Run `npm install`
-- Use `npm run build` to build the card to `dist/sensor-bars-card.js`
