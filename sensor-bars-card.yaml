@@ -1,6 +1,7 @@
 name: Sensor Bars Card
-description: A customizable Lovelace card to display sensors as progress bars.
-version: 0.0.1
+description: A customizable Lovelace card to show sensor values as progress bars
+version: 1.0.0
+type: module
 resources:
   - url: /hacsfiles/sensor-bars-card/sensor-bars-card.js
     type: module

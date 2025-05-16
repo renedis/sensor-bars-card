@@ -7,8 +7,5 @@ export default {
     file: 'dist/sensor-bars-card.js',
     format: 'es'
   },
-  plugins: [
-    resolve(),
-    typescript()
-  ]
+  plugins: [resolve(), typescript()]
 };

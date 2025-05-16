@@ -1,0 +1,13 @@
+{
+  "name": "Sensor Bars Card",
+  "content_in_root": false,
+  "filename": "sensor-bars-card.js",
+  "render_readme": true,
+  "domains": [],
+  "country": "all",
+  "homeassistant": "2022.0.0",
+  "iot_class": "local",
+  "persistent_directory": null,
+  "zip_release": false,
+  "type": "dashboard"
+}
