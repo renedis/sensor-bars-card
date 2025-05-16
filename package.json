@@ -1,0 +1,12 @@
+{
+  "name": "sensor-bars-card",
+  "version": "0.0.1",
+  "description": "Lovelace card to display sensor values as progress bars",
+  "main": "dist/sensor-bars-card.js",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "dependencies": {
+    "lit-element": "^3.0.0"
+  }
+}
