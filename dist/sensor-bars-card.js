@@ -20,13 +20,17 @@ class SensorBarsCard extends HTMLElement {
         .card { padding: 16px; }
         .bar-row {
           margin: 4px 0 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
         .bar-container {
           border-radius: 9999px;
           overflow: hidden;
-          width: 100%;
+          flex-grow: 1;
           height: 12px;
           background-color: var(--bar-bg-color, #2f3a3f);
+          margin: 0 12px;
         }
         .bar-fill {
           height: 100%;
@@ -37,14 +41,6 @@ class SensorBarsCard extends HTMLElement {
           font-size: 14px;
           font-weight: 500;
           color: #ccc;
-          margin-bottom: 4px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .label.left {
-          margin-bottom: 0;
-          margin-right: 8px;
           width: 150px;
           flex-shrink: 0;
         }
@@ -52,17 +48,18 @@ class SensorBarsCard extends HTMLElement {
           font-size: 14px;
           font-weight: 500;
           color: #ccc;
-          margin-bottom: 4px;
+          width: 60px;
+          text-align: right;
+          flex-shrink: 0;
         }
-        .value.above {
+        .label.above, .value.above {
+          width: 100%;
           margin-bottom: 4px;
+          text-align: left;
         }
-        .bar-row.left {
+        .vertical-stack {
           display: flex;
-          align-items: center;
-        }
-        .bar-row.left .bar-container {
-          flex-grow: 1;
+          flex-direction: column;
         }
         h1 {
           font-size: 18px;
@@ -100,46 +97,43 @@ class SensorBarsCard extends HTMLElement {
       const labelPosition = bar.label_position || "above";
       const valuePosition = bar.value_position || "right";
 
-      // Prepare label HTML
+      // Render label and value elements
       const labelHtml = labelPosition !== "none" ? `
-        <div class="label ${labelPosition === "left" ? "left" : ""}">
+        <div class="label ${labelPosition === "above" ? "above" : ""}">
           ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
           <span>${bar.name}</span>
         </div>
       ` : "";
 
-      // Prepare value HTML
       const valueHtml = showValue && valuePosition !== "none" ? `
         <div class="value ${valuePosition === "above" ? "above" : ""}">
           ${value}${unit}
         </div>
       ` : "";
 
-      // Build bar row based on label position
-      if (labelPosition === "left") {
-        // flex row: label left, bar next, value right or above
+      // Compose layout
+      if (labelPosition === "above" || valuePosition === "above") {
+        // Vertical stacking if either label or value is above
         return `
-          <div class="bar-row left">
-            ${labelHtml}
-            <div style="flex-grow:1">
-              ${valuePosition === "above" ? valueHtml : ""}
-              <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
-                <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
-              </div>
-              ${valuePosition === "right" ? valueHtml : ""}
-            </div>
-          </div>
-        `;
-      } else {
-        // label above or none
-        return `
-          <div class="bar-row">
+          <div class="bar-row vertical-stack">
             ${labelPosition === "above" ? labelHtml : ""}
             ${valuePosition === "above" ? valueHtml : ""}
             <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
-            ${valuePosition === "right" ? valueHtml : ""}
+            ${labelPosition !== "above" && labelPosition !== "none" ? labelHtml : ""}
+            ${valuePosition !== "above" && valuePosition !== "none" ? valueHtml : ""}
+          </div>
+        `;
+      } else {
+        // Horizontal layout with label left, bar middle, value right
+        return `
+          <div class="bar-row">
+            ${labelHtml}
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+            ${valueHtml}
           </div>
         `;
       }
