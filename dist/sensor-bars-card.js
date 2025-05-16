@@ -67,6 +67,10 @@ class SensorBarsCard extends HTMLElement {
           flex-grow: 1;
           margin: 0 12px;
         }
+        .bar-row.vertical-stack {
+          display: flex;
+          flex-direction: column;
+        }
         h1 {
           font-size: 18px;
           margin: 0 0 12px;
@@ -102,6 +106,54 @@ class SensorBarsCard extends HTMLElement {
 
       const labelPosition = bar.label_position || "above";
       const valuePosition = bar.value_position || "right";
+
+      // Fix layout for (label:left + value:above) - use vertical stack with label left above bar
+      if (labelPosition === "left" && valuePosition === "above") {
+        return `
+          <div class="bar-row vertical-stack">
+            <div class="label left">
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
+              <span>${bar.name}</span>
+            </div>
+            ${showValue ? `<div class="value" style="text-align: right; margin-bottom: 4px;">${value}${unit}</div>` : ''}
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Fix layout for label:none with value:right or value:above
+      if (labelPosition === "none") {
+        if (valuePosition === "right") {
+          return `
+            <div class="bar-row" style="justify-content: flex-start;">
+              <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);">
+                <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+              </div>
+              ${showValue ? `<div class="value" style="width: 60px; text-align: right;">${value}${unit}</div>` : ''}
+            </div>
+          `;
+        } else if (valuePosition === "above") {
+          return `
+            <div class="bar-row vertical-stack">
+              ${showValue ? `<div class="value" style="text-align: right; margin-bottom: 4px;">${value}${unit}</div>` : ''}
+              <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+                <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+              </div>
+            </div>
+          `;
+        } else {
+          // fallback: just bar full width
+          return `
+            <div class="bar-row">
+              <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+                <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+              </div>
+            </div>
+          `;
+        }
+      }
 
       // Compose label and value HTML for above together
       if (labelPosition === "above" && valuePosition === "above") {
@@ -156,18 +208,6 @@ class SensorBarsCard extends HTMLElement {
               </div>
               ${showValue ? `<div class="value" style="width: 60px;">${value}${unit}</div>` : ''}
             </div>
-          </div>
-        `;
-      }
-
-      // Label none and value right
-      if (labelPosition === "none" && valuePosition === "right") {
-        return `
-          <div class="bar-row" style="justify-content: flex-start;">
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);">
-              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
-            </div>
-            ${showValue ? `<div class="value" style="width: 60px; text-align: right;">${value}${unit}</div>` : ''}
           </div>
         `;
       }
