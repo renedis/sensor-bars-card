@@ -18,11 +18,15 @@ class SensorBarsCard extends HTMLElement {
     const style = `
       <style>
         .card { padding: 16px; }
+        .bar-row {
+          margin: 4px 0 12px;
+        }
         .bar-container {
           border-radius: 9999px;
           overflow: hidden;
           width: 100%;
-          margin: 4px 0 12px;
+          height: 12px;
+          background-color: var(--bar-bg-color, #2f3a3f);
         }
         .bar-fill {
           height: 100%;
@@ -32,13 +36,22 @@ class SensorBarsCard extends HTMLElement {
         .label {
           font-size: 14px;
           font-weight: 500;
-          margin-bottom: 4px;
           color: #ccc;
+          margin-bottom: 4px;
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        .icon { margin-right: 8px; }
+        .label.left {
+          margin-bottom: 0;
+          margin-right: 8px;
+          width: 150px;
+          flex-shrink: 0;
+        }
+        .bar-row.left {
+          display: flex;
+          align-items: center;
+        }
         h1 {
           font-size: 18px;
           margin: 0 0 12px;
@@ -72,13 +85,22 @@ class SensorBarsCard extends HTMLElement {
         }
       }
 
-      return `
-        <div class="label">
+      const labelPosition = bar.label_position || "above";
+
+      const labelHtml = labelPosition !== "none" ? `
+        <div class="label ${labelPosition === "left" ? "left" : ""}">
           <span>${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}${bar.name}</span>
           ${showValue ? `<span>${value}${unit}</span>` : ''}
         </div>
-        <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
-          <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+      ` : "";
+
+      return `
+        <div class="bar-row ${labelPosition === "left" ? "left" : ""}">
+          ${labelPosition === "above" ? labelHtml : ""}
+          <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+            <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+          </div>
+          ${labelPosition === "left" ? labelHtml : ""}
         </div>
       `;
     }).join('');
