@@ -38,7 +38,7 @@ class SensorBarsCard extends HTMLElement {
           font-weight: 500;
           color: #ccc;
         }
-        .label-value-above {
+        .label-value-above-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -48,7 +48,6 @@ class SensorBarsCard extends HTMLElement {
         .label.left {
           width: 150px;
           flex-shrink: 0;
-          margin-right: 8px;
         }
         .value {
           font-size: 14px;
@@ -107,7 +106,26 @@ class SensorBarsCard extends HTMLElement {
       const labelPosition = bar.label_position || "above";
       const valuePosition = bar.value_position || "right";
 
-      // Fix label:none + value:above (show value alone above bar)
+      // Special fix: label left + value above → show label & value side-by-side above bar
+      if (labelPosition === "left" && valuePosition === "above") {
+        return `
+          <div class="bar-row vertical-stack">
+            <div class="label-value-above-row">
+              <div class="label left">
+                ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
+                <span>${bar.name}</span>
+              </div>
+              ${showValue ? `<div class="value">${value}${unit}</div>` : ''}
+            </div>
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Other existing fixes and layouts...
+
       if (labelPosition === "none" && valuePosition === "above") {
         return `
           <div class="bar-row vertical-stack">
@@ -119,25 +137,6 @@ class SensorBarsCard extends HTMLElement {
         `;
       }
 
-      // Fix label:left + value:above (label left on line, value right aligned on same line, bar below)
-      if (labelPosition === "left" && valuePosition === "above") {
-        return `
-          <div class="bar-row vertical-stack">
-            <div class="label-value-above" style="justify-content: space-between; width: 100%; margin-bottom: 4px;">
-              <div class="label left">
-                ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
-                <span>${bar.name}</span>
-              </div>
-              ${showValue ? `<div class="value" style="text-align: right;">${value}${unit}</div>` : ''}
-            </div>
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
-              <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
-            </div>
-          </div>
-        `;
-      }
-
-      // label:none + value:right (horizontal with bar filling width minus value width)
       if (labelPosition === "none" && valuePosition === "right") {
         return `
           <div class="bar-row left" style="justify-content: flex-start;">
@@ -149,7 +148,6 @@ class SensorBarsCard extends HTMLElement {
         `;
       }
 
-      // label & value both above
       if (labelPosition === "above" && valuePosition === "above") {
         return `
           <div class="bar-row">
@@ -167,7 +165,6 @@ class SensorBarsCard extends HTMLElement {
         `;
       }
 
-      // label:left + value:right horizontal
       if (labelPosition === "left") {
         return `
           <div class="bar-row left">
@@ -183,7 +180,6 @@ class SensorBarsCard extends HTMLElement {
         `;
       }
 
-      // label:above + value:right (label above bar, value right side)
       if (labelPosition === "above" && valuePosition === "right") {
         return `
           <div class="bar-row vertical-stack">
@@ -201,7 +197,7 @@ class SensorBarsCard extends HTMLElement {
         `;
       }
 
-      // fallback: label above, no value
+      // fallback
       return `
         <div class="bar-row">
           ${labelPosition === "above" ? `
