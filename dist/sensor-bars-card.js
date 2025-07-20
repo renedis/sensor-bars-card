@@ -11,11 +11,20 @@ class SensorBarsCard extends HTMLElement {
     this.render();
   }
 
+  _handleBarClick(entity) {
+    const event = new Event('hass-more-info', {
+      bubbles: true,
+      composed: true,
+    });
+    event.detail = { entityId: entity };
+    this.dispatchEvent(event);
+  }
+
   render() {
     if (!this._hass || !this.config) return;
     const root = this.shadowRoot || this.attachShadow({ mode: 'open' });
 
-    const style = 
+    const style = `
       <style>
         .card { padding: 16px; }
         .bar-row {
@@ -27,6 +36,7 @@ class SensorBarsCard extends HTMLElement {
           width: 100%;
           height: 12px;
           background-color: var(--bar-bg-color, #2f3a3f);
+          cursor: pointer;
         }
         .bar-fill {
           height: 100%;
@@ -75,12 +85,12 @@ class SensorBarsCard extends HTMLElement {
           margin: 0 0 12px;
         }
       </style>
-    ;
+    `;
 
     const barsHtml = this.config.bars.map(bar => {
       const stateObj = this._hass.states[bar.entity];
       if (!stateObj) {
-        return <div class="label">${bar.name} – entity not found</div>;
+        return `<div class="label">${bar.name} – entity not found</div>`;
       }
 
       const raw = parseFloat(stateObj.state);
@@ -108,103 +118,103 @@ class SensorBarsCard extends HTMLElement {
 
       // Fix label:none + value:above (value alone above bar)
       if (labelPosition === "none" && valuePosition === "above") {
-        return 
+        return `
           <div class="bar-row vertical-stack">
-            ${showValue ? <div class="value" style="text-align: right; margin-bottom: 4px;">${value}${unit}</div> : ''}
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+            ${showValue ? `<div class="value" style="text-align: right; margin-bottom: 4px;">${value}${unit}</div>` : ''}
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
           </div>
-        ;
+        `;
       }
 
       // Fix label:none + value:right (value right aligned next to bar)
       if (labelPosition === "none" && valuePosition === "right") {
-        return 
+        return `
           <div class="bar-row left" style="justify-content: flex-start;">
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
-            ${showValue ? <div class="value" style="width: 60px; text-align: right; align-self: center;">${value}${unit}</div> : ''}
+            ${showValue ? `<div class="value" style="width: 60px; text-align: right; align-self: center;">${value}${unit}</div>` : ''}
           </div>
-        ;
+        `;
       }
 
       // Fix label:left + value:above and label:above + value:above
       // Show label and value side-by-side above bar in one horizontal flex row
       if ((labelPosition === "left" && valuePosition === "above") ||
           (labelPosition === "above" && valuePosition === "above")) {
-        return 
+        return `
           <div class="bar-row vertical-stack">
             <div class="label-value-row-above">
               <div class="label ${labelPosition === "left" ? "left" : ""}">
-                ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+                ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
                 <span>${bar.name}</span>
               </div>
-              ${showValue ? <div class="value">${value}${unit}</div> : ''}
+              ${showValue ? `<div class="value">${value}${unit}</div>` : ''}
             </div>
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
           </div>
-        ;
+        `;
       }
 
       // label:left + value:right horizontal row
       if (labelPosition === "left") {
-        return 
+        return `
           <div class="bar-row left">
             <div class="label left">
-              ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
               <span>${bar.name}</span>
             </div>
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
-            ${showValue && valuePosition === "right" ? <div class="value">${value}${unit}</div> : ""}
+            ${showValue && valuePosition === "right" ? `<div class="value">${value}${unit}</div>` : ""}
           </div>
-        ;
+        `;
       }
 
       // label:above + value:right horizontal bar + value right
       if (labelPosition === "above" && valuePosition === "right") {
-        return 
+        return `
           <div class="bar-row vertical-stack">
             <div class="label" style="margin-bottom: 4px;">
-              ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
               <span>${bar.name}</span>
             </div>
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div class="bar-container" style="background-color: ${bg}; height: ${height}px; flex-grow: 1; margin-right: 12px;">
+              <div class="bar-container" style="background-color: ${bg}; height: ${height}px; flex-grow: 1; margin-right: 12px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
                 <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
               </div>
-              ${showValue ? <div class="value" style="width: 60px;">${value}${unit}</div> : ''}
+              ${showValue ? `<div class="value" style="width: 60px;">${value}${unit}</div>` : ''}
             </div>
           </div>
-        ;
+        `;
       }
 
       // fallback: label above, no value
-      return 
+      return `
         <div class="bar-row">
           ${labelPosition === "above" ? 
-            <div class="label" style="margin-bottom: 4px;">
-              ${bar.icon ? <ha-icon class="icon" icon="${bar.icon}"></ha-icon> : ''}
+            `<div class="label" style="margin-bottom: 4px;">
+              ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
               <span>${bar.name}</span>
-            </div>
+            </div>`
            : ""}
-          <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
+          <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
             <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
           </div>
-          ${showValue && valuePosition === "right" ? <div class="value">${value}${unit}</div> : ""}
+          ${showValue && valuePosition === "right" ? `<div class="value">${value}${unit}</div>` : ""}
         </div>
-      ;
+      `;
     }).join('');
 
-    root.innerHTML = ${style}<ha-card><div class="card">
-      ${this.config.title ? <h1>${this.config.title}</h1> : ''}
+    root.innerHTML = `${style}<ha-card><div class="card">
+      ${this.config.title ? `<h1>${this.config.title}</h1>` : ''}
       ${barsHtml}
-    </div></ha-card>;
+    </div></ha-card>`;
   }
 
   getCardSize() {
