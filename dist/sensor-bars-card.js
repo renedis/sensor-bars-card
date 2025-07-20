@@ -20,6 +20,12 @@ class SensorBarsCard extends HTMLElement {
     this.dispatchEvent(event);
   }
 
+  _formatValue(value, decimals) {
+    if (decimals === undefined) return value;
+    if (decimals === 0) return Math.round(value);
+    return parseFloat(value.toFixed(decimals));
+  }
+  
   render() {
     if (!this._hass || !this.config) return;
     const root = this.shadowRoot || this.attachShadow({ mode: 'open' });
@@ -94,7 +100,8 @@ class SensorBarsCard extends HTMLElement {
       }
 
       const raw = parseFloat(stateObj.state);
-      const value = isNaN(raw) ? 0 : raw;
+      const rawValue = isNaN(raw) ? 0 : raw;
+      const value = this._formatValue(rawValue, bar.decimals);
       const unit = bar.unit || stateObj.attributes.unit_of_measurement || '';
       const max = bar.max || 100;
       const percent = Math.min((value / max) * 100, 100);
