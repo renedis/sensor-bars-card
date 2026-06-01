@@ -93,7 +93,7 @@ class SensorBarsCard extends HTMLElement {
       </style>
     `;
 
-    const barsHtml = this.config.bars.map(bar => {
+    const renderBar = (bar) => {
       const stateObj = this._hass.states[bar.entity];
       if (!stateObj) {
         return `<div class="label">${bar.name} – entity not found</div>`;
@@ -128,7 +128,7 @@ class SensorBarsCard extends HTMLElement {
         return `
           <div class="bar-row vertical-stack">
             ${showValue ? `<div class="value" style="text-align: right; margin-bottom: 4px;">${value}${unit}</div>` : ''}
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
           </div>
@@ -139,7 +139,7 @@ class SensorBarsCard extends HTMLElement {
       if (labelPosition === "none" && valuePosition === "right") {
         return `
           <div class="bar-row left" style="justify-content: flex-start;">
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px; width: calc(100% - 60px);">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
             ${showValue ? `<div class="value" style="width: 60px; text-align: right; align-self: center;">${value}${unit}</div>` : ''}
@@ -160,7 +160,7 @@ class SensorBarsCard extends HTMLElement {
               </div>
               ${showValue ? `<div class="value">${value}${unit}</div>` : ''}
             </div>
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
           </div>
@@ -175,7 +175,7 @@ class SensorBarsCard extends HTMLElement {
               ${bar.icon ? `<ha-icon class="icon" icon="${bar.icon}"></ha-icon>` : ''}
               <span>${bar.name}</span>
             </div>
-            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
+            <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
               <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
             </div>
             ${showValue && valuePosition === "right" ? `<div class="value">${value}${unit}</div>` : ""}
@@ -192,7 +192,7 @@ class SensorBarsCard extends HTMLElement {
               <span>${bar.name}</span>
             </div>
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div class="bar-container" style="background-color: ${bg}; height: ${height}px; flex-grow: 1; margin-right: 12px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
+              <div class="bar-container" style="background-color: ${bg}; height: ${height}px; flex-grow: 1; margin-right: 12px;">
                 <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
               </div>
               ${showValue ? `<div class="value" style="width: 60px;">${value}${unit}</div>` : ''}
@@ -210,12 +210,20 @@ class SensorBarsCard extends HTMLElement {
               <span>${bar.name}</span>
             </div>`
            : ""}
-          <div class="bar-container" style="background-color: ${bg}; height: ${height}px;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">
+          <div class="bar-container" style="background-color: ${bg}; height: ${height}px;">
             <div class="bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
           </div>
           ${showValue && valuePosition === "right" ? `<div class="value">${value}${unit}</div>` : ""}
         </div>
       `;
+    };
+
+    // Whole row is the tap target (touch-friendly), not just the thin bar.
+    const barsHtml = this.config.bars.map(bar => {
+      const stateObj = this._hass.states[bar.entity];
+      const inner = renderBar(bar);
+      if (!stateObj) return inner;
+      return `<div class="bar-click-row" style="cursor: pointer;" onclick="this.getRootNode().host._handleBarClick('${bar.entity}')">${inner}</div>`;
     }).join('');
 
     root.innerHTML = `${style}<ha-card><div class="card">
